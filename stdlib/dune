@@ -1,0 +1,3 @@
+(library
+ (name ocaml_typing_benchmark_stdlib)
+ (public_name ocaml_typing_benchmark.stdlib))
