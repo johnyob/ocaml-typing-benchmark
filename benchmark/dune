@@ -1,0 +1,4 @@
+(executable
+ (public_name benchmark)
+ (name benchmark)
+ (libraries core core_bench core_unix.command_unix ocaml_typing_benchmark_parsing ocaml_typing_benchmark_typing ocaml_typing_benchmark_driver))
