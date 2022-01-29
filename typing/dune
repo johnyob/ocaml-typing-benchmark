@@ -1,0 +1,7 @@
+(library
+ (name ocaml_typing_benchmark_typing)
+ (public_name ocaml_typing_benchmark.typing)
+ (modules_without_implementation outcometree cmo_format)
+ (flags
+  (:standard -w -9 -open Ocaml_typing_benchmark_utils -open Ocaml_typing_benchmark_parsing))
+ (libraries ocaml_typing_benchmark_utils ocaml_typing_benchmark_parsing))

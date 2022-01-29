@@ -1,0 +1,4 @@
+(library
+ (name ocaml_typing_benchmark_utils)
+ (public_name ocaml_typing_benchmark.utils)
+ (libraries ocaml-compiler-libs.common))

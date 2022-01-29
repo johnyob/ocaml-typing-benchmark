@@ -1,0 +1,12 @@
+(library
+ (name ocaml_typing_benchmark_parsing)
+ (public_name ocaml_typing_benchmark.parsing)
+ (modules_without_implementation asttypes parsetree)
+ (flags
+  (:standard
+   -w
+   -9
+   -open
+   Ocaml_typing_benchmark_utils))
+ (libraries
+  ocaml_typing_benchmark_utils))
