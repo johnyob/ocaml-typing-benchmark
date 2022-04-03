@@ -14,8 +14,6 @@ let initial_env () =
   Compmisc.initial_env ()
 
 
-
-
 let pexp pexp_desc =
   { pexp_desc
   ; pexp_attributes = []
@@ -83,13 +81,12 @@ let t4 =
 
 
 let create_test_infer_exp ~name ?(env = initial_env ()) exp =
-  
   Bench.Test.create
     ~name
     (let exp' = Lexing.from_string exp |> Parse.expression in
-     fun () -> 
-      (* print_endline exp; *)
-      infer ~env exp')
+     fun () ->
+       (* print_endline exp; *)
+       infer ~env exp')
 
 
 let t1' =
@@ -164,7 +161,7 @@ let add_option = add_type_decl {| type 'a option = None | Some of 'a |}
 let t7' =
   create_test_infer_exp
     ~name:"lookup (tree)"
-    ~env:((initial_env ()) |> add_tree |> add_option)
+    ~env:(initial_env () |> add_tree |> add_option)
     "let le = fun (m : int) (n : int) -> true\n\
     \ in let rec lookup = fun t key ->\n\
     \  match t with\n\
@@ -179,7 +176,7 @@ let t7' =
 let t8' =
   create_test_infer_exp
     ~name:"insertion sort"
-    ~env:((initial_env ()) |> add_list)
+    ~env:(initial_env () |> add_list)
     "let leq = fun (m : int) (n : int) -> true in\n\
     \ let rec insert = fun x t ->\n\
     \   match t with\n\
@@ -215,7 +212,7 @@ let add_perfect_tree =
 let t10' =
   create_test_infer_exp
     ~name:"perfect_tree length"
-    ~env:((initial_env ()) |> add_perfect_tree)
+    ~env:(initial_env () |> add_perfect_tree)
     "let rec length : type a. a perfect_tree -> int = \n\
     \  fun t -> \n\
     \    match t with\n\
@@ -227,7 +224,7 @@ let t10' =
 let t11' =
   create_test_infer_exp
     ~name:"term eval"
-    ~env:((initial_env ()) |> add_term)
+    ~env:(initial_env () |> add_term)
     "let fst (x, y) = x in\n\
     \      let snd (x, y) = y in\n\
     \      let rec eval : type a. a term -> a = fun t -> match t with\n\
@@ -266,7 +263,7 @@ let add_elem_mapper =
 let t12' =
   create_test_infer_exp
     ~name:"dependent associative list map_elem"
-    ~env:((initial_env ()) |> add_key |> add_elem |> add_list |> add_elem_mapper)
+    ~env:(initial_env () |> add_key |> add_elem |> add_list |> add_elem_mapper)
     {|
       let rec map = fun t f ->
         match t with
@@ -330,5 +327,105 @@ let id_let_stress_test =
     ~args:[ 1; 5; 10; 50; 100; 200; 500; 1000; 2000 ]
     (fun n -> Staged.stage (fun () -> infer ~env:(initial_env ()) (loop n)))
 
-let stress_tests = [ id_app_stress_test; id_let_stress_test ]
-let stress_command = Bench.make_command stress_tests 
+
+let fun_ pat exp = Pexp_fun (Nolabel, None, ppat pat, pexp exp)
+
+let def_pair ~in_ =
+  pexp
+    (Pexp_let
+       ( Nonrecursive
+       , [ pvb
+             (Ppat_var ("pair" |> Location.mknoloc))
+             (fun_
+                (Ppat_var ("x" |> Location.mknoloc))
+                (fun_
+                   (Ppat_var ("f" |> Location.mknoloc))
+                   (Pexp_apply
+                      ( pexp
+                          (Pexp_ident (Longident.Lident "f" |> Location.mknoloc))
+                      , [ ( Nolabel
+                          , pexp
+                              (Pexp_ident
+                                 (Longident.Lident "x" |> Location.mknoloc)) )
+                        ; ( Nolabel
+                          , pexp
+                              (Pexp_ident
+                                 (Longident.Lident "x" |> Location.mknoloc)) )
+                        ] ))))
+         ]
+       , in_ ))
+
+
+let def_f0 ~in_ =
+  pexp
+    (Pexp_let
+       ( Nonrecursive
+       , [ pvb
+             (Ppat_var ("f0" |> Location.mknoloc))
+             (fun_
+                (Ppat_var ("x" |> Location.mknoloc))
+                (Pexp_apply
+                   ( pexp
+                       (Pexp_ident (Longident.Lident "pair" |> Location.mknoloc))
+                   , [ ( Nolabel
+                       , pexp
+                           (Pexp_ident (Longident.Lident "x" |> Location.mknoloc))
+                       )
+                     ] )))
+         ]
+       , in_ ))
+
+
+let ident x = Longident.Lident x |> Location.mknoloc
+
+let pair_let_stress_test =
+  let[@warning "-26"] rec loop i n =
+    if i = n
+    then
+      (* fun z -> fn (fun x -> x) z *)
+      pexp
+        (fun_
+           (Ppat_var ("z" |> Location.mknoloc))
+           (Pexp_apply
+              ( pexp (Pexp_ident (ident ("f" ^ Int.to_string (n - 1))))
+              , [ ( Nolabel
+                  , pexp
+                      (fun_
+                         (Ppat_var ("x" |> Location.mknoloc))
+                         (Pexp_ident (ident "x"))) )
+                ; Nolabel, pexp (Pexp_ident (ident "z"))
+                ] )))
+    else (
+      assert (i >= 1);
+      pexp
+        (Pexp_let
+           ( Nonrecursive
+           , [ (* let fi = fun x -> fi-1 (fi-1 x) in ...*)
+               pvb
+                 (Ppat_var ("f" ^ Int.to_string i |> Location.mknoloc))
+                 (let f = "f" ^ Int.to_string (i - 1) in
+                  fun_
+                    (Ppat_var ("x" |> Location.mknoloc))
+                    (Pexp_apply
+                       ( pexp (Pexp_ident (ident f))
+                       , [ ( Nolabel
+                           , pexp
+                               (Pexp_apply
+                                  ( pexp (Pexp_ident (ident f))
+                                  , [ Nolabel, pexp (Pexp_ident (ident "x")) ]
+                                  )) )
+                         ] )))
+             ]
+           , loop (i + 1) n )))
+  in
+  Bench.Test.create_indexed
+    ~name:"pair let - stress test"
+    ~args:[ 1; 2; 3; 4; 5; 6 ]
+    (fun n ->
+      Staged.stage (fun () ->
+          let exp = def_pair ~in_:(def_f0 ~in_:(loop 1 n)) in
+          infer ~env:(initial_env ()) exp))
+
+
+let stress_tests = [ pair_let_stress_test ]
+let stress_command = Bench.make_command stress_tests
