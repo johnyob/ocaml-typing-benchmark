@@ -420,7 +420,7 @@ let pair_let_stress_test =
   in
   Bench.Test.create_indexed
     ~name:"pair let - stress test"
-    ~args:[ 1; 2; 3; 4; 5; 6 ]
+    ~args:[ 1;2;3;4;5;6 ]
     (fun n ->
       Staged.stage (fun () ->
           let exp = def_pair ~in_:(def_f0 ~in_:(loop 1 n)) in
