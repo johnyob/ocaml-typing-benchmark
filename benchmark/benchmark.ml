@@ -23,7 +23,7 @@ let perform_benchmark tests =
   Bench.bench
     ~run_config:
       (Run_config.create
-         ~quota:(Quota.Num_calls 200)
+         ~quota:(Quota.Num_calls 100000)
          ~stabilize_gc_between_runs:true
          ~fork_each_benchmark:true
          ())
@@ -32,10 +32,10 @@ let perform_benchmark tests =
     ~analysis_configs:
       (Analysis_config.default
       |> List.map
-           ~f:(Analysis_config.with_error_estimation ~bootstrap_trials:20))
+           ~f:(Analysis_config.with_error_estimation ~bootstrap_trials:10000))
     tests
 
 
 let () = 
   (* perform_benchmark Benchmark_infer.tests; *)
-  perform_benchmark Benchmark_infer.stress_tests
+  perform_benchmark Benchmark_infer.[ t13' ]

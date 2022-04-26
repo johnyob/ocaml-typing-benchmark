@@ -279,7 +279,48 @@ let t12' =
     |}
 
 
-let tests = [ t1'; t2'; t3'; t4'; t5'; t6'; t7'; t8'; t9'; t10'; t11'; t12' ]
+let add_basic_color = 
+  add_type_decl
+    {|
+      type basic_color = [`Black | `Red | `Green | `Yellow | `Blue | `Megenta | `Cyan | `White ]
+    |}
+
+let add_color = 
+  add_type_decl
+  {|
+    type color = [ `Basic of basic_color * [ `Bold | `Regular ] | `Rgb of int * int * int | `Gray of int ]
+  |}
+
+let t13' =
+  create_test_infer_exp
+    ~name:"coloring"
+    ~env:(initial_env () |> add_basic_color |> add_color)
+    {|
+      let basic_color_to_int = 
+        fun basic_color ->
+          match basic_color with
+          | `Black -> 0 | `Red -> 1 | `Green -> 2 | `Yellow -> 3
+          | `Blue -> 4 | `Megenta -> 5 | `Cyan -> 6 | `White -> 7
+      in
+      let color_to_int = 
+        fun color ->
+          match color with
+          | `Basic (basic_color, weight) ->
+            let base = (match weight with `Bold -> 8 | `Regular -> 0) in
+            base + basic_color_to_int basic_color
+          | `Rgb (r, g, b) -> 16 + b + g * 6 + r * 36
+          | `Gray i -> 232 + i
+      in
+      let extended_color_to_int = 
+        fun ex_color -> 
+          match ex_color with
+          | `Rgba (r, g, b, a) -> 256 + a + b * 6 + g * 36 + r * 216
+          | #color as color -> color_to_int color 
+      in ()
+    |}
+
+
+let tests = [ t1'; t2'; t3'; t4'; t5'; t6'; t7'; t8'; t9'; t10'; t11'; t12'; t13' ]
 let command = Bench.make_command tests
 let id = Longident.Lident "id" |> Location.mknoloc
 
